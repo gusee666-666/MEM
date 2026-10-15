@@ -507,7 +507,7 @@ select:focus { border-color: var(--cyan); }
       <span class="logo-mark">M</span>
       <span>MEME<span class="logo-accent">.FORGE</span></span>
     </div>
-    <span class="badge">v1.0 · arcade</span>
+    <span class="badge">v1.1 · memeboat</span>
   </header>
 
   <aside class="panel templates-panel">
@@ -548,7 +548,7 @@ select:focus { border-color: var(--cyan); }
 'use strict';
 
 /* ============================================================
-   MEME.FORGE — single-file meme generator
+   MEME.FORGE — single-file meme generator (Memeboat edition)
    ============================================================ */
 
 // === DOM refs ===
@@ -559,7 +559,7 @@ const toastEl = document.getElementById('toast');
 // === State ===
 const state = {
   image: null,           // HTMLImageElement
-  templates: [],         // from imgflip
+  templates: [],         // from memeboat
   texts: [],             // text blocks
   selectedId: null,
   nextId: 1,
@@ -876,37 +876,51 @@ function handleUpload(e) {
 }
 
 /* ============================================================
-   TEMPLATES FROM IMGFLIP
+   TEMPLATES FROM MEMEBOAT
    ============================================================ */
 
 async function loadTemplates() {
   // 1) Try cache
   try {
-    const cached = JSON.parse(localStorage.getItem('memeforge_templates') || 'null');
-    if (cached && Array.isArray(cached.memes) && cached.memes.length) {
-      state.templates = cached.memes;
+    const cached = JSON.parse(localStorage.getItem('memeforge_memeboat') || 'null');
+    if (cached && Array.isArray(cached.templates) && cached.templates.length) {
+      state.templates = cached.templates;
       renderTemplates();
     }
   } catch {}
 
-  // 2) Fetch fresh
+  // 2) Fetch fresh from memeboat API
   try {
-    const r = await fetch('https://api.imgflip.com/get_memes');
+    // Memeboat API returns template list; we request a large batch
+    const r = await fetch('https://memebo.at/api/templates?limit=250');
     const data = await r.json();
-    if (data && data.success && data.data && Array.isArray(data.data.memes)) {
-      state.templates = data.data.memes;
+
+    // Memeboat may return { templates: [...] } or an array directly
+    let list = Array.isArray(data) ? data : (data.templates || data.data || []);
+
+    // Normalize to { id, name, url, width, height }
+    const normalized = list.map(t => ({
+      id: t.slug || t.id || t.name,
+      name: t.name || t.title || t.slug || 'Meme',
+      url: t.imageUrl || t.image_url || t.url || t.image || '',
+      width: t.width || null,
+      height: t.height || null,
+    })).filter(t => t.url);
+
+    if (normalized.length) {
+      state.templates = normalized;
       renderTemplates();
       try {
-        localStorage.setItem('memeforge_templates', JSON.stringify({
+        localStorage.setItem('memeforge_memeboat', JSON.stringify({
           ts: Date.now(),
-          memes: state.templates
+          templates: state.templates
         }));
       } catch {}
-    } else {
-      throw new Error('Bad response');
+      return;
     }
+    throw new Error('Empty list');
   } catch (err) {
-    console.error('Templates fetch failed:', err);
+    console.error('Memeboat fetch failed:', err);
     if (!state.templates.length) {
       document.getElementById('templates-grid').innerHTML =
         '<div class="empty">Не удалось загрузить шаблоны.<br>Проверь интернет или загрузи своё фото 📁</div>';
@@ -927,8 +941,8 @@ function renderTemplates(filter = '') {
   }
 
   grid.innerHTML = list.map(t => `
-    <button class="tpl" data-id="${t.id}" data-url="${t.url}" title="${escapeHtml(t.name)}">
-      <img src="${t.url}" alt="${escapeHtml(t.name)}" loading="lazy" crossorigin="anonymous">
+    <button class="tpl" data-id="${escapeHtml(t.id)}" data-url="${escapeHtml(t.url)}" title="${escapeHtml(t.name)}">
+      <img src="${escapeHtml(t.url)}" alt="${escapeHtml(t.name)}" loading="lazy" crossorigin="anonymous">
     </button>
   `).join('');
 
@@ -1057,7 +1071,7 @@ function init() {
       return;
     }
     const t = state.templates[Math.floor(Math.random() * state.templates.length)];
-    const btn = document.querySelector(`.tpl[data-id="${t.id}"]`);
+    const btn = document.querySelector(`.tpl[data-id="${CSS.escape(t.id)}"]`);
     if (btn) {
       btn.click();
       btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
