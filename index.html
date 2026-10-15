@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEME.FORGE — генератор мемов</title>
+<meta name="description" content="Создавай мемы в браузере. Бесплатно, без регистрации.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0F0F1E;
+  --panel: #1A1A2E;
+  --panel-2: #232946;
+  --ink: #FFFFFF;
+  --muted: #7B84A8;
+  --pink: #FF2E63;
+  --cyan: #08D9D6;
+  --yellow: #FFD93D;
+  --line: #FFFFFF;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+body {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  min-height: 100vh;
+}
+
+/* === LAYOUT === */
+.app {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  padding: 16px;
+  height: 100vh;
+  max-width: 1700px;
+  margin: 0 auto;
+}
+
+.topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel);
+  border: 3px solid var(--line);
+  box-shadow: 6px 6px 0 var(--pink);
+  padding: 12px 20px;
+  border-radius: 4px;
+}
+
+.logo {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 22px;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 36px; height: 36px;
+  background: var(--yellow);
+  color: #000;
+  border: 3px solid #000;
+  transform: rotate(-4deg);
+  font-size: 20px;
+  font-family: 'Archivo Black', sans-serif;
+}
+
+.logo-accent { color: var(--yellow); }
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--cyan);
+  border: 2px solid var(--cyan);
+  padding: 4px 10px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+/* === PANELS === */
+.panel {
+  background: var(--panel);
+  border: 3px solid var(--line);
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel-title {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.panel-title::before {
+  content: '';
+  width: 8px; height: 8px;
+  background: var(--cyan);
+  border: 2px solid #000;
+  display: inline-block;
+}
+
+/* === TEMPLATES === */
+.templates-panel { overflow: hidden; }
+
+.search-input {
+  width: 100%;
+  background: #0F0F1E;
+  color: #fff;
+  border: 3px solid var(--line);
+  border-radius: 2px;
+  padding: 8px 12px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  margin-bottom: 12px;
+  outline: none;
+  flex-shrink: 0;
+}
+.search-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 3px 3px 0 var(--cyan);
+}
+.search-input::placeholder { color: var(--muted); }
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 4px;
+  margin: -4px;
+  flex: 1;
+  align-content: start;
+}
+.templates-grid::-webkit-scrollbar { width: 8px; }
+.templates-grid::-webkit-scrollbar-track { background: #0F0F1E; }
+.templates-grid::-webkit-scrollbar-thumb { background: var(--cyan); border: 2px solid #000; }
+
+.tpl {
+  aspect-ratio: 1;
+  background: var(--panel-2);
+  border: 3px solid var(--line);
+  border-radius: 2px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.08s, box-shadow 0.08s;
+  padding: 0;
+  position: relative;
+}
+
+.tpl:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--cyan);
+}
+
+.tpl.active {
+  border-color: var(--yellow);
+  box-shadow: 4px 4px 0 var(--yellow);
+}
+
+.tpl img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 30px 10px;
+  line-height: 1.6;
+}
+
+/* === CANVAS AREA === */
+.canvas-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel);
+  border: 3px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.canvas-wrap {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  min-height: 0;
+  background: repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(255,255,255,0.015) 15px, rgba(255,255,255,0.015) 30px);
+}
+
+canvas {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 rgba(8, 217, 214, 0.7);
+  background: #fff;
+  cursor: grab;
+  touch-action: none;
+  border-radius: 2px;
+}
+canvas:active { cursor: grabbing; }
+
+.canvas-actions {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-top: 3px solid var(--line);
+  background: var(--panel-2);
+  flex-wrap: wrap;
+}
+
+/* === BUTTONS === */
+.btn {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  border: 3px solid #000;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.06s, box-shadow 0.06s;
+  background: var(--yellow);
+  color: #000;
+  box-shadow: 4px 4px 0 #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  user-select: none;
+  white-space: nowrap;
+}
+.btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000; }
+.btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+
+.btn.primary { background: var(--pink); color: #fff; }
+.btn.cyan { background: var(--cyan); color: #000; }
+.btn.dark {
+  background: var(--panel-2);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: 4px 4px 0 var(--pink);
+}
+.btn.dark:hover { box-shadow: 6px 6px 0 var(--pink); }
+.btn.dark:active { box-shadow: 2px 2px 0 var(--pink); }
+
+/* === TEXT BLOCKS === */
+#text-controls {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-right: 4px;
+  margin-right: -4px;
+  margin-bottom: 10px;
+}
+#text-controls::-webkit-scrollbar { width: 8px; }
+#text-controls::-webkit-scrollbar-track { background: #0F0F1E; }
+#text-controls::-webkit-scrollbar-thumb { background: var(--pink); border: 2px solid #000; }
+
+.text-block {
+  background: var(--panel-2);
+  border: 3px solid var(--line);
+  border-radius: 2px;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+
+.text-block.selected {
+  border-color: var(--yellow);
+  box-shadow: 4px 4px 0 var(--yellow);
+}
+
+.tb-textarea {
+  width: 100%;
+  background: #0F0F1E;
+  color: #fff;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  padding: 6px 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  resize: vertical;
+  min-height: 42px;
+  outline: none;
+  margin-bottom: 8px;
+}
+.tb-textarea:focus { border-color: var(--cyan); }
+
+.field {
+  display: grid;
+  grid-template-columns: 60px 1fr 32px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field label { font-weight: 700; }
+.field .value { color: var(--cyan); text-align: right; font-weight: 700; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #0F0F1E;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px; height: 18px;
+  background: var(--pink);
+  border: 2px solid #000;
+  cursor: pointer;
+  border-radius: 1px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 18px;
+  background: var(--pink);
+  border: 2px solid #000;
+  cursor: pointer;
+  border-radius: 1px;
+}
+
+.color-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.color-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0F0F1E;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  padding: 4px 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+}
+.color-field span { flex: 1; }
+.color-field input[type="color"] {
+  width: 24px;
+  height: 20px;
+  border: 2px solid #000;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 1px;
+}
+.color-field input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.color-field input[type="color"]::-webkit-color-swatch { border: none; border-radius: 0; }
+
+.font-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+select {
+  background: #0F0F1E;
+  color: #fff;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  padding: 6px 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+select:focus { border-color: var(--cyan); }
+
+.btn-icon {
+  background: var(--pink);
+  border: 2px solid #000;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  transition: transform 0.06s;
+  padding: 0;
+}
+.btn-icon:hover { transform: scale(1.08); }
+.btn-icon:active { transform: scale(0.95); }
+
+.full-w { width: 100%; margin-bottom: 8px; }
+
+/* === TOAST === */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--yellow);
+  color: #000;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  padding: 12px 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 12px;
+  border-radius: 2px;
+  opacity: 0;
+  transition: transform 0.25s cubic-bezier(.2,1.4,.5,1), opacity 0.2s;
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 90vw;
+  text-align: center;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1050px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    height: auto;
+    min-height: 100vh;
+  }
+  .templates-panel {
+    max-height: 340px;
+  }
+  .templates-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+  .canvas-area {
+    min-height: 400px;
+  }
+  .canvas-wrap {
+    min-height: 320px;
+  }
+  .controls-panel {
+    max-height: none;
+  }
+  .logo { font-size: 18px; }
+  .logo-mark { width: 30px; height: 30px; font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="logo">
+      <span class="logo-mark">M</span>
+      <span>MEME<span class="logo-accent">.FORGE</span></span>
+    </div>
+    <span class="badge">v1.0 · arcade</span>
+  </header>
+
+  <aside class="panel templates-panel">
+    <div class="panel-title">Шаблоны</div>
+    <input type="text" id="tpl-search" class="search-input" placeholder="🔍 Поиск мема...">
+    <div class="templates-grid" id="templates-grid">
+      <div class="empty">Загрузка шаблонов...</div>
+    </div>
+  </aside>
+
+  <main class="canvas-area">
+    <div class="canvas-wrap">
+      <canvas id="canvas" width="800" height="800"></canvas>
+    </div>
+    <div class="canvas-actions">
+      <label class="btn cyan" for="upload">📁 Загрузить фото</label>
+      <input type="file" id="upload" accept="image/*" hidden>
+      <button class="btn" id="random">🎲 Мне повезёт</button>
+      <button class="btn dark" id="reset">↺ Сброс</button>
+    </div>
+  </main>
+
+  <aside class="panel controls-panel">
+    <div class="panel-title">Текст</div>
+    <button class="btn cyan full-w" id="add-text">+ Добавить текст</button>
+    <div id="text-controls"></div>
+
+    <div class="panel-title">Экспорт</div>
+    <button class="btn primary full-w" id="download">💾 Скачать PNG</button>
+    <button class="btn full-w" id="copy">📋 Скопировать</button>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   MEME.FORGE — single-file meme generator
+   ============================================================ */
+
+// === DOM refs ===
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const toastEl = document.getElementById('toast');
+
+// === State ===
+const state = {
+  image: null,           // HTMLImageElement
+  templates: [],         // from imgflip
+  texts: [],             // text blocks
+  selectedId: null,
+  nextId: 1,
+};
+
+// === Helpers ===
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function toast(msg, ms = 2200) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+function toCanvasCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) * (canvas.width / rect.width),
+    y: (e.clientY - rect.top) * (canvas.height / rect.height),
+  };
+}
+
+/* ============================================================
+   CANVAS RENDERING
+   ============================================================ */
+
+function render(clean = false) {
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  if (state.image) {
+    ctx.drawImage(state.image, 0, 0, W, H);
+  } else {
+    // Placeholder
+    ctx.fillStyle = '#E8E8F0';
+    ctx.fillRect(0, 0, W, H);
+    // Grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+    // Text
+    ctx.fillStyle = '#8B93B8';
+    ctx.font = `bold ${Math.round(H * 0.045)}px "Space Mono", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ВЫБЕРИ ШАБЛОН →', W / 2, H / 2 - H * 0.03);
+    ctx.font = `${Math.round(H * 0.028)}px "Space Mono", monospace`;
+    ctx.fillText('или загрузи своё фото', W / 2, H / 2 + H * 0.04);
+  }
+
+  state.texts.forEach(t => drawTextBlock(t, W, H, !clean));
+}
+
+function drawTextBlock(t, W, H, showSelection) {
+  const fontSize = Math.max(8, Math.round(H * t.size / 100));
+  ctx.font = `900 ${fontSize}px "${t.font}", Anton, Impact, sans-serif`;
+  ctx.textAlign = t.align;
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.miterLimit = 2;
+
+  const lines = (t.text || '').split('\n');
+  const lineHeight = fontSize * 1.05;
+  const totalH = lineHeight * lines.length;
+  const startY = t.y * H - totalH / 2 + lineHeight / 2;
+  const cx = t.x * W;
+
+  lines.forEach((line, i) => {
+    const y = startY + i * lineHeight;
+    if (t.strokeW > 0) {
+      ctx.lineWidth = Math.max(1, t.strokeW * fontSize / 60);
+      ctx.strokeStyle = t.stroke;
+      ctx.strokeText(line, cx, y);
+    }
+    ctx.fillStyle = t.color;
+    ctx.fillText(line, cx, y);
+  });
+
+  if (showSelection && t.id === state.selectedId) {
+    let maxW = 0;
+    lines.forEach(line => {
+      maxW = Math.max(maxW, ctx.measureText(line).width);
+    });
+    let left;
+    if (t.align === 'center') left = cx - maxW / 2;
+    else if (t.align === 'left') left = cx;
+    else left = cx - maxW;
+
+    const pad = fontSize * 0.18;
+    ctx.strokeStyle = 'rgba(8, 217, 214, 0.9)';
+    ctx.lineWidth = Math.max(2, fontSize * 0.03);
+    ctx.setLineDash([fontSize * 0.15, fontSize * 0.1]);
+    ctx.strokeRect(
+      left - pad,
+      t.y * H - totalH / 2 - pad,
+      maxW + pad * 2,
+      totalH + pad * 2
+    );
+    ctx.setLineDash([]);
+  }
+}
+
+/* ============================================================
+   HIT TEST
+   ============================================================ */
+
+function hitTest(px, py) {
+  const W = canvas.width;
+  const H = canvas.height;
+
+  for (let i = state.texts.length - 1; i >= 0; i--) {
+    const t = state.texts[i];
+    const fontSize = Math.max(8, Math.round(H * t.size / 100));
+    ctx.font = `900 ${fontSize}px "${t.font}", Anton, Impact, sans-serif`;
+
+    const lines = (t.text || '').split('\n');
+    const lineHeight = fontSize * 1.05;
+    const totalH = lineHeight * lines.length;
+    const cx = t.x * W;
+    const cy = t.y * H;
+
+    let maxW = 0;
+    lines.forEach(line => {
+      maxW = Math.max(maxW, ctx.measureText(line).width);
+    });
+
+    let left, right;
+    if (t.align === 'center') { left = cx - maxW / 2; right = cx + maxW / 2; }
+    else if (t.align === 'left') { left = cx; right = cx + maxW; }
+    else { left = cx - maxW; right = cx; }
+
+    const pad = Math.max(12, fontSize * 0.15);
+    if (px >= left - pad && px <= right + pad &&
+        py >= cy - totalH / 2 - pad && py <= cy + totalH / 2 + pad) {
+      return t;
+    }
+  }
+  return null;
+}
+
+/* ============================================================
+   TEXT BLOCKS CRUD
+   ============================================================ */
+
+function addText(opts = {}) {
+  const id = String(state.nextId++);
+  const t = {
+    id,
+    text: opts.text ?? 'НОВЫЙ ТЕКСТ',
+    x: opts.x ?? 0.5,
+    y: opts.y ?? 0.5,
+    size: opts.size ?? 10,
+    color: '#FFFFFF',
+    stroke: '#000000',
+    strokeW: 6,
+    font: 'Anton',
+    align: 'center',
+  };
+  state.texts.push(t);
+  state.selectedId = id;
+  return t;
+}
+
+function deleteText(id) {
+  state.texts = state.texts.filter(t => t.id !== id);
+  if (state.selectedId === id) {
+    state.selectedId = state.texts.length ? state.texts[state.texts.length - 1].id : null;
+  }
+  renderControls();
+  render();
+}
+
+function selectText(id) {
+  state.selectedId = id;
+  document.querySelectorAll('.text-block').forEach(b => {
+    b.classList.toggle('selected', b.dataset.id === id);
+  });
+  render();
+}
+
+/* ============================================================
+   CONTROLS PANEL
+   ============================================================ */
+
+function renderControls() {
+  const container = document.getElementById('text-controls');
+
+  if (!state.texts.length) {
+    container.innerHTML = '<div class="empty">Нет текстовых блоков.<br>Добавь первый ☝️</div>';
+    return;
+  }
+
+  container.innerHTML = state.texts.map(t => `
+    <div class="text-block ${t.id === state.selectedId ? 'selected' : ''}" data-id="${t.id}">
+      <textarea class="tb-textarea" data-field="text" placeholder="Введи текст...">${escapeHtml(t.text)}</textarea>
+
+      <div class="field">
+        <label>Размер</label>
+        <input type="range" min="3" max="30" step="0.5" value="${t.size}" data-field="size">
+        <span class="value">${t.size}</span>
+      </div>
+
+      <div class="color-row">
+        <label class="color-field">
+          <span>Цвет</span>
+          <input type="color" value="${t.color}" data-field="color">
+        </label>
+        <label class="color-field">
+          <span>Обводка</span>
+          <input type="color" value="${t.stroke}" data-field="stroke">
+        </label>
+      </div>
+
+      <div class="field">
+        <label>Контур</label>
+        <input type="range" min="0" max="20" step="0.5" value="${t.strokeW}" data-field="strokeW">
+        <span class="value">${t.strokeW}</span>
+      </div>
+
+      <div class="font-row">
+        <select data-field="font">
+          <option value="Anton" ${t.font === 'Anton' ? 'selected' : ''}>Anton (Impact-style)</option>
+          <option value="Archivo Black" ${t.font === 'Archivo Black' ? 'selected' : ''}>Archivo Black</option>
+          <option value="Bebas Neue" ${t.font === 'Bebas Neue' ? 'selected' : ''}>Bebas Neue</option>
+          <option value="Space Mono" ${t.font === 'Space Mono' ? 'selected' : ''}>Space Mono</option>
+        </select>
+        <button class="btn-icon" data-action="delete" title="Удалить">✕</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Wire events
+  container.querySelectorAll('.text-block').forEach(block => {
+    const id = block.dataset.id;
+
+    block.addEventListener('click', e => {
+      if (e.target.closest('input, textarea, select, button, label')) return;
+      selectText(id);
+    });
+
+    block.querySelectorAll('[data-field]').forEach(input => {
+      const evt = (input.tagName === 'SELECT' || input.type === 'color') ? 'input' : 'input';
+      input.addEventListener(evt, () => {
+        const t = state.texts.find(x => x.id === id);
+        if (!t) return;
+        const field = input.dataset.field;
+        let val = input.value;
+        if (field === 'size' || field === 'strokeW') val = parseFloat(val) || 0;
+        t[field] = val;
+
+        if (field === 'size' || field === 'strokeW') {
+          const span = input.parentElement.querySelector('.value');
+          if (span) span.textContent = val;
+        }
+        render();
+      });
+    });
+
+    const del = block.querySelector('[data-action="delete"]');
+    if (del) del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteText(id);
+    });
+  });
+}
+
+/* ============================================================
+   IMAGE LOADING
+   ============================================================ */
+
+function setImage(img) {
+  state.image = img;
+  const maxDim = 1200;
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  canvas.width = Math.max(1, Math.round(w * scale));
+  canvas.height = Math.max(1, Math.round(h * scale));
+  render();
+}
+
+function loadTemplate(url) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => setImage(img);
+  img.onerror = () => toast('Не удалось загрузить шаблон 😢');
+  img.src = url;
+}
+
+function handleUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => setImage(img);
+    img.onerror = () => toast('Не удалось открыть файл');
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+/* ============================================================
+   TEMPLATES FROM IMGFLIP
+   ============================================================ */
+
+async function loadTemplates() {
+  // 1) Try cache
+  try {
+    const cached = JSON.parse(localStorage.getItem('memeforge_templates') || 'null');
+    if (cached && Array.isArray(cached.memes) && cached.memes.length) {
+      state.templates = cached.memes;
+      renderTemplates();
+    }
+  } catch {}
+
+  // 2) Fetch fresh
+  try {
+    const r = await fetch('https://api.imgflip.com/get_memes');
+    const data = await r.json();
+    if (data && data.success && data.data && Array.isArray(data.data.memes)) {
+      state.templates = data.data.memes;
+      renderTemplates();
+      try {
+        localStorage.setItem('memeforge_templates', JSON.stringify({
+          ts: Date.now(),
+          memes: state.templates
+        }));
+      } catch {}
+    } else {
+      throw new Error('Bad response');
+    }
+  } catch (err) {
+    console.error('Templates fetch failed:', err);
+    if (!state.templates.length) {
+      document.getElementById('templates-grid').innerHTML =
+        '<div class="empty">Не удалось загрузить шаблоны.<br>Проверь интернет или загрузи своё фото 📁</div>';
+    }
+  }
+}
+
+function renderTemplates(filter = '') {
+  const grid = document.getElementById('templates-grid');
+  const q = filter.trim().toLowerCase();
+  const list = q
+    ? state.templates.filter(t => t.name.toLowerCase().includes(q))
+    : state.templates;
+
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty">Ничего не найдено 🔍</div>';
+    return;
+  }
+
+  grid.innerHTML = list.map(t => `
+    <button class="tpl" data-id="${t.id}" data-url="${t.url}" title="${escapeHtml(t.name)}">
+      <img src="${t.url}" alt="${escapeHtml(t.name)}" loading="lazy" crossorigin="anonymous">
+    </button>
+  `).join('');
+
+  grid.querySelectorAll('.tpl').forEach(btn => {
+    btn.addEventListener('click', () => {
+      grid.querySelectorAll('.tpl').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadTemplate(btn.dataset.url);
+    });
+  });
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+
+function exportPNG() {
+  render(true); // without selection
+  canvas.toBlob(blob => {
+    if (!blob) {
+      toast('Ошибка экспорта 😢');
+      render();
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `meme-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    render();
+    toast('Скачано! 🎉');
+  }, 'image/png');
+}
+
+async function copyToClipboard() {
+  render(true);
+  canvas.toBlob(async blob => {
+    render();
+    if (!blob) return toast('Ошибка');
+    try {
+      const item = new ClipboardItem({ 'image/png': blob });
+      await navigator.clipboard.write([item]);
+      toast('Скопировано в буфер 📋');
+    } catch (err) {
+      console.error(err);
+      toast('Не удалось скопировать');
+    }
+  }, 'image/png');
+}
+
+/* ============================================================
+   DRAG & DROP
+   ============================================================ */
+
+let dragging = null;
+let dragOffset = { x: 0, y: 0 };
+
+canvas.addEventListener('pointerdown', e => {
+  const { x, y } = toCanvasCoords(e);
+  const t = hitTest(x, y);
+  if (t) {
+    selectText(t.id);
+    dragging = t;
+    dragOffset.x = t.x * canvas.width - x;
+    dragOffset.y = t.y * canvas.height - y;
+    try { canvas.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
+  }
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const { x, y } = toCanvasCoords(e);
+  let nx = (x + dragOffset.x) / canvas.width;
+  let ny = (y + dragOffset.y) / canvas.height;
+  dragging.x = Math.max(-0.2, Math.min(1.2, nx));
+  dragging.y = Math.max(-0.2, Math.min(1.2, ny));
+  render();
+  e.preventDefault();
+});
+
+function endDrag(e) {
+  if (dragging) {
+    dragging = null;
+    try { canvas.releasePointerCapture(e.pointerId); } catch {}
+  }
+}
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+
+/* ============================================================
+   INIT
+   ============================================================ */
+
+function init() {
+  // Default text blocks
+  addText({ text: 'ТЕКСТ СВЕРХУ', y: 0.1 });
+  addText({ text: 'ТЕКСТ СНИЗУ', y: 0.9 });
+  state.selectedId = state.texts[0].id;
+
+  renderControls();
+  render();
+
+  // Search
+  document.getElementById('tpl-search').addEventListener('input', e => {
+    renderTemplates(e.target.value);
+  });
+
+  // Add text
+  document.getElementById('add-text').addEventListener('click', () => {
+    addText({ text: 'НОВЫЙ ТЕКСТ' });
+    renderControls();
+    render();
+  });
+
+  // Upload
+  document.getElementById('upload').addEventListener('change', handleUpload);
+
+  // Random
+  document.getElementById('random').addEventListener('click', () => {
+    if (!state.templates.length) {
+      toast('Шаблоны ещё не загружены');
+      return;
+    }
+    const t = state.templates[Math.floor(Math.random() * state.templates.length)];
+    const btn = document.querySelector(`.tpl[data-id="${t.id}"]`);
+    if (btn) {
+      btn.click();
+      btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } else {
+      loadTemplate(t.url);
+    }
+  });
+
+  // Reset
+  document.getElementById('reset').addEventListener('click', () => {
+    if (!confirm('Сбросить всё?')) return;
+    state.image = null;
+    state.texts = [];
+    state.selectedId = null;
+    state.nextId = 1;
+    canvas.width = 800;
+    canvas.height = 800;
+    addText({ text: 'ТЕКСТ СВЕРХУ', y: 0.1 });
+    addText({ text: 'ТЕКСТ СНИЗУ', y: 0.9 });
+    state.selectedId = state.texts[0].id;
+    renderControls();
+    render();
+    toast('Сброшено');
+  });
+
+  // Export
+  document.getElementById('download').addEventListener('click', exportPNG);
+  document.getElementById('copy').addEventListener('click', copyToClipboard);
+
+  // Double-click → add text at that point
+  canvas.addEventListener('dblclick', e => {
+    const { x, y } = toCanvasCoords(e);
+    const t = addText({
+      text: 'ТЕКСТ',
+      x: x / canvas.width,
+      y: y / canvas.height,
+    });
+    renderControls();
+    render();
+    setTimeout(() => {
+      const ta = document.querySelector(`.text-block[data-id="${t.id}"] textarea`);
+      if (ta) { ta.focus(); ta.select(); }
+    }, 60);
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      exportPNG();
+      return;
+    }
+    if (!typing && (e.key === 'Delete' || e.key === 'Backspace')) {
+      if (state.selectedId) {
+        e.preventDefault();
+        deleteText(state.selectedId);
+      }
+    }
+  });
+
+  // Templates
+  loadTemplates();
+
+  // Redraw when fonts ready
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => render());
+  }
+}
+
+init();
+</script>
+</body>
+</html>
